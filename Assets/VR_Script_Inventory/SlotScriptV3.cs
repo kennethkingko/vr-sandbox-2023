@@ -29,9 +29,13 @@ public class SlotScriptV3 : MonoBehaviour
 
     public bool wristBasedMode;
     public bool wristBased_entrySlotDesignation;
+    public bool wristBased_bottomStackDesignation;
     public GameObject wristBased_slotStack;
 
+    public GameObject wristBased_slotStack_bottom;
+
     [SerializeField] GameObject currentStackTop;
+    [SerializeField] GameObject currentStackBottom;
     public List<GameObject> itemsInSlot_wristBased;
 
     // current object to certain slot distance 
@@ -45,6 +49,13 @@ public class SlotScriptV3 : MonoBehaviour
         // device = inventoryScript.subDevice[0];
         lastFrameGrabbed = false;
         currentStackTop = null;
+        currentStackBottom = null;
+        if (wristBased_entrySlotDesignation)
+        {
+            Debug.Log("============ OOK THIS WORKS!!!!");
+            wristBased_slotStack.GetComponent<SlotScriptV3>().wristBased_slotStack_bottom = wristBased_slotStack_bottom;
+        }
+
     }
 
     void Update()
@@ -135,7 +146,7 @@ public class SlotScriptV3 : MonoBehaviour
             {
                 Debug.Log("SLOTSCRIPTV3: Insert Item Condition Fulfilled");
                 obj.GetComponent<ItemScriptV3>().grabStateSemaphore = false;
-                inventoryScript.debugLog.GetComponent<TextMeshProUGUI>().text = "Added "+obj.name;
+                inventoryScript.debugLog.GetComponent<TextMeshProUGUI>().text = "Added " + obj.name;
                 insertItem(obj);
 
             }
@@ -174,7 +185,7 @@ public class SlotScriptV3 : MonoBehaviour
                 {
                     Debug.Log("WRIST-ENTRY OK");
                     obj.GetComponent<ItemScriptV3>().grabStateSemaphore = false;
-                    inventoryScript.debugLog.GetComponent<TextMeshProUGUI>().text = "Added "+obj.name;
+                    inventoryScript.debugLog.GetComponent<TextMeshProUGUI>().text = "Added " + obj.name;
                     insertItem_wristStack(obj);
                 }
 
@@ -206,7 +217,7 @@ public class SlotScriptV3 : MonoBehaviour
                 {
 
                     obj.GetComponent<ItemScriptV3>().grabStateSemaphore = false;
-                    inventoryScript.debugLog.GetComponent<TextMeshProUGUI>().text = "Added "+obj.name;
+                    inventoryScript.debugLog.GetComponent<TextMeshProUGUI>().text = "Added " + obj.name;
                     insertItem_Magnetic(obj);
                 }
 
@@ -249,10 +260,16 @@ public class SlotScriptV3 : MonoBehaviour
         {
             if (itemsInSlot != null)
             {
-                Debug.Log("SLOTSCRIPTV3: wristB1");
+                // Debug.Log("SLOTSCRIPTV3: wristB1");
                 foreach (GameObject x in itemsInSlot_wristBased.ToArray())
                 {
-                    Debug.Log("SLOTSCRIPTV3: wristB2" + x.gameObject.name + obj2.name);
+                    // Debug.Log("SLOTSCRIPTV3: wristB2" + x.gameObject.name + obj2.name);
+                    float bottomSlot_distance = Vector3.Distance(obj2.gameObject.transform.position, wristBased_slotStack_bottom.gameObject.transform.position);
+                    float topSlot_distance = Vector3.Distance(obj2.gameObject.transform.position, this.gameObject.transform.position);
+                    Debug.Log("=================== !!!!! "+ bottomSlot_distance +" | "+ topSlot_distance + " | BOTTOM SLOT?: " + wristBased_bottomStackDesignation);
+                    if (bottomSlot_distance < 0.005 || topSlot_distance < 0.005){
+                        return;
+                    }
                     if (x == obj2)
                     {
                         Debug.Log("SLOTSCRIPTV3: wristB3");
@@ -330,6 +347,7 @@ public class SlotScriptV3 : MonoBehaviour
         Debug.Log("Wrist-based Stack: Successfully inserted " + obj.gameObject.name);
         // obj.GetComponent<Rigidbody>().isKinematic = true;
         obj.transform.localScale = obj.GetComponent<ItemScriptV3>().defaultScale * 0.5f;
+
         wristBased_slotStack.GetComponent<SlotScriptV3>().itemsInSlot_wristBased.Add(obj);
         wristBased_slotStack.GetComponent<SlotScriptV3>().updateStackSlotContents();
         obj.GetComponent<ItemScriptV3>().inSlot = true;
@@ -338,26 +356,47 @@ public class SlotScriptV3 : MonoBehaviour
     }
 
     public void updateStackSlotContents()
-    {   
+    {
         // Debug.Log("UPDATING STACK CONTENTS FROM SLOT " + this.gameObject.name);
         if (itemsInSlot_wristBased.Count == 0)
         {
             currentStackTop = null;
+            currentStackBottom = null;
             return;
         }
         else
-        {   
+        {
             // Debug.Log("CURRENT STACK TOP == " + itemsInSlot_wristBased[itemsInSlot_wristBased.Count-1]);
-            currentStackTop = itemsInSlot_wristBased[itemsInSlot_wristBased.Count-1];
-            for (int y = 0; y < itemsInSlot_wristBased.Count-1; y++){
+            currentStackTop = itemsInSlot_wristBased[itemsInSlot_wristBased.Count - 1];
+            //we set y to 1 so we can display the bottom of the stack!!
+            currentStackBottom = itemsInSlot_wristBased[0];
+            for (int y = 1; y < itemsInSlot_wristBased.Count - 1; y++)
+            {
                 itemsInSlot_wristBased[y].SetActive(false);
             }
-            itemsInSlot_wristBased[itemsInSlot_wristBased.Count-1].SetActive(true);
+            itemsInSlot_wristBased[itemsInSlot_wristBased.Count - 1].SetActive(true);
+            itemsInSlot_wristBased[0].SetActive(true);
         }
-        currentStackTop.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
-        currentStackTop.transform.SetParent(this.gameObject.transform, true);
-        currentStackTop.transform.localPosition = Vector3.zero;
-        currentStackTop.transform.localEulerAngles = currentStackTop.GetComponent<ItemScriptV3>().slotRotation;
+
+        if (currentStackBottom != currentStackTop)
+        {
+            currentStackTop.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
+            currentStackTop.transform.SetParent(this.gameObject.transform, true);
+            currentStackTop.transform.localPosition = Vector3.zero;
+            currentStackTop.transform.localEulerAngles = currentStackTop.GetComponent<ItemScriptV3>().slotRotation;
+            currentStackBottom.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
+            currentStackBottom.transform.SetParent(wristBased_slotStack_bottom.gameObject.transform, true);
+            currentStackBottom.transform.localPosition = Vector3.zero;
+            currentStackBottom.transform.localEulerAngles = currentStackBottom.GetComponent<ItemScriptV3>().slotRotation;
+        } else {
+            currentStackTop.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
+            currentStackTop.transform.SetParent(this.gameObject.transform, true);
+            currentStackTop.transform.localPosition = Vector3.zero;
+            currentStackTop.transform.localEulerAngles = currentStackTop.GetComponent<ItemScriptV3>().slotRotation;
+        }
+
+
+
         // Debug.Log("Finished");
     }
 
@@ -384,7 +423,7 @@ public class SlotScriptV3 : MonoBehaviour
 
             }
 
-        } 
+        }
 
     }
 
